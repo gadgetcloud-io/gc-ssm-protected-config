@@ -1,0 +1,6 @@
+name: gc-ssm-protected-config
+version: 1.0.0
+repository: https://github.com/gadgetcloud-io/gc-ssm-protected-config
+author: Ganesh Butcha <ganesh@gadgetcloud.io>
+description: GadgetCloud SSM Protected Configuration
+license: GadgetCloud Internal Use Only
