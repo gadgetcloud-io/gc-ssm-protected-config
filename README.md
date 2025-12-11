@@ -6,9 +6,9 @@ Central configuration management for Gadgetcloud.io microservices using AWS Syst
 
 | Environment | Status | Parameters | Region |
 |------------|--------|------------|---------|
-| **dev** | ✅ Deployed | 6 parameters | ap-south-1 |
-| **stg** | ✅ Deployed | 6 parameters | ap-south-1 |
-| **prd** | ✅ Deployed | 6 parameters | ap-south-1 |
+| **dev** | ✅ Deployed | 18 parameters | ap-south-1 |
+| **stg** | ✅ Deployed | 18 parameters | ap-south-1 |
+| **prd** | ✅ Deployed | 18 parameters | ap-south-1 |
 
 **AWS Profile**: `gc` | **S3 Backend**: `tf-state.gadgetcloud.io`
 
@@ -57,6 +57,94 @@ Examples:
 - `/gadgetcloud/dev/database/host`
 - `/gadgetcloud/prd/api/base_url`
 - `/gadgetcloud/stg/features/enable_analytics`
+
+## Email Templates
+
+The system includes pre-configured email templates stored in SSM Parameter Store:
+
+### Template Categories
+
+**Contact Confirmation** - "Thank you for contacting us"
+- `email/contact-confirmation/subject` - Email subject line
+- `email/contact-confirmation/html` - HTML email template
+- `email/contact-confirmation/text` - Plain text version
+
+**Password Reset** - Secure password reset emails
+- `email/password-reset/subject` - Email subject line
+- `email/password-reset/html` - HTML email template with reset link
+- `email/password-reset/text` - Plain text version
+
+**Notification** - Generic notification emails
+- `email/notification/subject` - Email subject line
+- `email/notification/html` - HTML email template
+- `email/notification/text` - Plain text version
+
+### Email Configuration
+- `email/from_address` - Default sender email (noreply@gadgetcloud.io)
+- `email/from_name` - Default sender name (GadgetCloud)
+- `email/support_email` - Support contact email
+
+### Template Variables
+
+Templates use single-brace `{variable}` syntax for dynamic content:
+
+**Contact Confirmation**:
+- `{user_name}` - Recipient name
+- `{email}` - User's email address
+- `{ticket_id}` - Support ticket identifier
+- `{support_email}` - Support email address
+
+**Password Reset**:
+- `{user_name}` - Recipient name
+- `{email}` - Account email
+- `{reset_link}` - Password reset URL
+- `{verification_code}` - Verification code
+- `{support_email}` - Support email address
+
+**Notification**:
+- `{user_name}` - Recipient name
+- `{notification_title}` - Notification heading
+- `{notification_message}` - Main message content
+- `{action_url}` - Call-to-action link
+- `{action_text}` - Button text
+- `{support_email}` - Support email address
+
+### Usage in Lambda
+
+```python
+# Python - Load and render email template
+from config_loader import ConfigLoader
+
+config = ConfigLoader()
+html_template = config.get_parameter('email/password-reset/html')
+subject = config.get_parameter('email/password-reset/subject')
+
+# Replace template variables
+email_html = html_template.format(
+    user_name="John Doe",
+    email="john@example.com",
+    reset_link="https://app.gadgetcloud.io/reset?token=xyz",
+    verification_code="123456",
+    support_email=config.get_parameter('email/support_email')
+)
+```
+
+```javascript
+// Node.js - Load and render email template
+const { ConfigLoader } = require('./config_loader');
+
+const config = new ConfigLoader();
+const htmlTemplate = await config.getParameter('email/password-reset/html');
+const subject = await config.getParameter('email/password-reset/subject');
+
+// Replace template variables (using simple string replace or template library)
+const emailHtml = htmlTemplate
+    .replace('{user_name}', 'John Doe')
+    .replace('{email}', 'john@example.com')
+    .replace('{reset_link}', 'https://app.gadgetcloud.io/reset?token=xyz')
+    .replace('{verification_code}', '123456')
+    .replace('{support_email}', await config.getParameter('email/support_email'));
+```
 
 ## Getting Started
 
