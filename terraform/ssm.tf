@@ -1,5 +1,11 @@
+# Merge common and environment-specific parameters
+# Environment-specific parameters take precedence if there's a conflict
+locals {
+  all_parameters = merge(var.common_parameters, var.environment_parameters, var.parameters)
+}
+
 resource "aws_ssm_parameter" "config" {
-  for_each = var.parameters
+  for_each = local.all_parameters
 
   name        = "/${var.project_name}/${var.environment}/${each.key}"
   description = each.value.description

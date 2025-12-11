@@ -38,7 +38,10 @@ fi
 # Plan
 echo ""
 echo "Planning changes..."
-terraform plan -var-file="$CONFIG_DIR/parameters.tfvars" -out=tfplan
+terraform plan \
+    -var-file="$PROJECT_ROOT/configs/common.tfvars" \
+    -var-file="$CONFIG_DIR/parameters.tfvars" \
+    -out=tfplan
 
 # Apply
 echo ""

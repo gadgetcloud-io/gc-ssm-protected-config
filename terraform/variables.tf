@@ -19,8 +19,31 @@ variable "project_name" {
   default     = "gadgetcloud"
 }
 
+variable "common_parameters" {
+  description = "Common SSM parameters shared across all environments"
+  type = map(object({
+    value       = string
+    type        = string # String, StringList, or SecureString
+    description = string
+    tier        = optional(string, "Standard") # Standard or Advanced
+  }))
+  default = {}
+}
+
+variable "environment_parameters" {
+  description = "Environment-specific SSM parameters"
+  type = map(object({
+    value       = string
+    type        = string # String, StringList, or SecureString
+    description = string
+    tier        = optional(string, "Standard") # Standard or Advanced
+  }))
+  default = {}
+}
+
+# Legacy variable for backward compatibility - deprecated
 variable "parameters" {
-  description = "Map of SSM parameters to create"
+  description = "Map of SSM parameters to create (deprecated - use common_parameters and environment_parameters instead)"
   type = map(object({
     value       = string
     type        = string # String, StringList, or SecureString

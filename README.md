@@ -25,16 +25,17 @@ This repository manages configuration parameters for all Gadgetcloud.io Lambda m
 │   ├── variables.tf       # Input variables
 │   ├── ssm.tf             # SSM parameters and KMS key resources
 │   └── outputs.tf         # Outputs (parameter ARNs, KMS key, etc.)
-├── configs/               # Environment-specific parameter definitions
+├── configs/               # Configuration files
+│   ├── common.tfvars      # Shared parameters (all environments)
 │   ├── dev/
-│   │   ├── backend.tfvars
-│   │   └── parameters.tfvars
+│   │   ├── backend.tfvars # S3 backend config for dev
+│   │   └── parameters.tfvars  # Dev-specific parameters only
 │   ├── stg/
-│   │   ├── backend.tfvars
-│   │   └── parameters.tfvars
+│   │   ├── backend.tfvars # S3 backend config for stg
+│   │   └── parameters.tfvars  # Stg-specific parameters only
 │   └── prd/
-│       ├── backend.tfvars
-│       └── parameters.tfvars
+│       ├── backend.tfvars # S3 backend config for prd
+│       └── parameters.tfvars  # Prd-specific parameters only
 ├── scripts/               # Helper scripts
 │   ├── deploy.sh          # Deploy parameters for an environment
 │   ├── get-parameter.sh   # Retrieve a parameter value
@@ -45,6 +46,18 @@ This repository manages configuration parameters for all Gadgetcloud.io Lambda m
         ├── config_loader.py  # Python configuration loader
         └── config_loader.js  # Node.js configuration loader
 ```
+
+### Configuration Structure
+
+**Common Parameters** (`configs/common.tfvars`):
+- Shared across all environments (dev, stg, prd)
+- Includes: email templates, feature flags, rate limits, email config
+- Reduces redundancy and ensures consistency
+
+**Environment-Specific Parameters** (`configs/{env}/parameters.tfvars`):
+- Contains only environment-specific values
+- Currently only `api/base_url` differs between environments
+- Automatically merged with common parameters during deployment
 
 ## Parameter Naming Convention
 
