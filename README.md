@@ -206,7 +206,7 @@ The environments are already deployed! To use the configuration:
 
 3. **Validate configuration**:
    ```bash
-   python3 scripts/validate-config.py configs/dev/parameters.tfvars
+   python3 scripts/validate-config.py dev
    ```
 
 4. **Deploy parameters**:
@@ -366,7 +366,7 @@ terraform import aws_ssm_parameter.config[\"database/host\"] /gadgetcloud/dev/da
 ## Contributing
 
 When adding new parameters:
-1. Add to the appropriate environment's `parameters.tfvars`
-2. Run validation: `python3 scripts/validate-config.py configs/{env}/parameters.tfvars`
+1. Add to `configs/common.tfvars` for shared parameters, or to the appropriate environment's `configs/{env}/parameters.tfvars` for environment-specific values
+2. Run validation: `python3 scripts/validate-config.py dev` (or stg/prd)
 3. Test in dev first: `./scripts/deploy.sh dev`
 4. Update documentation if adding new parameter categories
