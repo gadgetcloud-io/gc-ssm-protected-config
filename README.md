@@ -2,7 +2,20 @@
 
 Central configuration management for Gadgetcloud.io microservices using AWS Systems Manager (SSM) Parameter Store.
 
-## 🚀 Deployment Status
+## 🚀 Quick Start
+
+```bash
+# Deploy to an environment
+./scripts/deploy.sh dev
+
+# List all parameters
+./scripts/list-parameters.sh dev
+
+# Get a parameter value
+./scripts/get-parameter.sh dev api/base_url
+```
+
+## Deployment Status
 
 | Environment | Status | Parameters | Region |
 |------------|--------|------------|---------|
@@ -14,52 +27,9 @@ Central configuration management for Gadgetcloud.io microservices using AWS Syst
 
 ## Overview
 
-This repository manages configuration parameters for all Gadgetcloud.io Lambda microservices across multiple environments (dev, stg, prd). Parameters are stored securely in AWS SSM Parameter Store with encryption for sensitive values using KMS.
+This repository manages configuration parameters for all Gadgetcloud.io Lambda microservices across multiple environments (dev, stg, prd). Parameters are stored securely in AWS SSM Parameter Store with KMS encryption for sensitive values.
 
-## Project Structure
-
-```
-.
-├── terraform/              # Terraform infrastructure code
-│   ├── main.tf            # Provider and backend configuration
-│   ├── variables.tf       # Input variables
-│   ├── ssm.tf             # SSM parameters and KMS key resources
-│   └── outputs.tf         # Outputs (parameter ARNs, KMS key, etc.)
-├── configs/               # Configuration files
-│   ├── common.tfvars      # Shared parameters (all environments)
-│   ├── dev/
-│   │   ├── backend.tfvars # S3 backend config for dev
-│   │   └── parameters.tfvars  # Dev-specific parameters only
-│   ├── stg/
-│   │   ├── backend.tfvars # S3 backend config for stg
-│   │   └── parameters.tfvars  # Stg-specific parameters only
-│   └── prd/
-│       ├── backend.tfvars # S3 backend config for prd
-│       └── parameters.tfvars  # Prd-specific parameters only
-├── scripts/               # Helper scripts
-│   ├── deploy.sh          # Deploy parameters for an environment
-│   ├── get-parameter.sh   # Retrieve a parameter value
-│   ├── list-parameters.sh # List all parameters for an environment
-│   └── validate-config.py # Validate configuration files
-└── examples/              # Example code for Lambda functions
-    └── lambda/
-        ├── config_loader.py  # Python configuration loader
-        └── config_loader.js  # Node.js configuration loader
-```
-
-### Configuration Structure
-
-**Common Parameters** (`configs/common.tfvars`):
-- Shared across all environments (dev, stg, prd)
-- Includes: email templates, feature flags, rate limits, email config
-- Reduces redundancy and ensures consistency
-
-**Environment-Specific Parameters** (`configs/{env}/parameters.tfvars`):
-- Contains only environment-specific values
-- Currently only `api/base_url` differs between environments
-- Automatically merged with common parameters during deployment
-
-## Parameter Naming Convention
+### Parameter Naming Convention
 
 All parameters follow this pattern:
 ```
@@ -67,62 +37,131 @@ All parameters follow this pattern:
 ```
 
 Examples:
-- `/gadgetcloud/dev/database/host`
-- `/gadgetcloud/prd/api/base_url`
+- `/gadgetcloud/dev/api/base_url`
+- `/gadgetcloud/prd/email/from_address`
 - `/gadgetcloud/stg/features/enable_analytics`
+
+### Configuration Structure
+
+**Shared Parameters** (`configs/common.tfvars`):
+- Email templates, feature flags, rate limits
+- Same across all environments
+- Reduces redundancy and ensures consistency
+
+**Environment-Specific Parameters** (`configs/{env}/parameters.tfvars`):
+- Values that differ per environment (e.g., API URLs)
+- Automatically merged with common parameters during deployment
+- Environment-specific values override common values
+
+## Common Tasks
+
+### Deploy Configuration Changes
+
+```bash
+# Deploy to dev
+./scripts/deploy.sh dev
+
+# Deploy to staging
+./scripts/deploy.sh stg
+
+# Deploy to production
+./scripts/deploy.sh prd
+```
+
+### Validate Configuration
+
+```bash
+# Validates both common.tfvars and environment-specific parameters.tfvars
+python3 scripts/validate-config.py dev
+python3 scripts/validate-config.py stg
+python3 scripts/validate-config.py prd
+```
+
+Checks for:
+- `CHANGE_ME` placeholders that need replacing
+- Sensitive parameters not using `SecureString` type
+
+### Query Parameters
+
+```bash
+# List all parameters for an environment
+./scripts/list-parameters.sh dev
+
+# Get a parameter value
+./scripts/get-parameter.sh dev email/from_address
+
+# Get and decrypt a secure parameter
+./scripts/get-parameter.sh prd database/password --decrypt
+```
+
+## Adding New Parameters
+
+### Shared Parameters (same across all environments)
+
+1. Edit `configs/common.tfvars`
+2. Add to `common_parameters` map:
+   ```hcl
+   common_parameters = {
+     "api/timeout" = {
+       value       = "30"
+       type        = "String"
+       description = "API timeout in seconds"
+     }
+   }
+   ```
+3. Validate: `python3 scripts/validate-config.py dev`
+4. Deploy to all environments:
+   ```bash
+   ./scripts/deploy.sh dev
+   ./scripts/deploy.sh stg
+   ./scripts/deploy.sh prd
+   ```
+
+### Environment-Specific Parameters
+
+1. Edit `configs/dev/parameters.tfvars` (and stg/prd as needed)
+2. Add to `environment_parameters` map:
+   ```hcl
+   environment_parameters = {
+     "api/base_url" = {
+       value       = "https://api-dev.gadgetcloud.io"
+       type        = "String"
+       description = "API base URL"
+     }
+   }
+   ```
+3. Validate: `python3 scripts/validate-config.py dev`
+4. Deploy: `./scripts/deploy.sh dev`
 
 ## Email Templates
 
-The system includes pre-configured email templates stored in SSM Parameter Store:
+The system includes pre-configured email templates stored in SSM Parameter Store.
 
-### Template Categories
+### Available Templates
 
-**Contact Confirmation** - "Thank you for contacting us"
-- `email/contact-confirmation/subject` - Email subject line
-- `email/contact-confirmation/html` - HTML email template
-- `email/contact-confirmation/text` - Plain text version
+Each template has three parameters: `/subject`, `/html`, `/text`
 
-**Password Reset** - Secure password reset emails
-- `email/password-reset/subject` - Email subject line
-- `email/password-reset/html` - HTML email template with reset link
-- `email/password-reset/text` - Plain text version
-
-**Notification** - Generic notification emails
-- `email/notification/subject` - Email subject line
-- `email/notification/html` - HTML email template
-- `email/notification/text` - Plain text version
-
-### Email Configuration
-- `email/from_address` - Default sender email (noreply@gadgetcloud.io)
-- `email/from_name` - Default sender name (GadgetCloud)
-- `email/support_email` - Support contact email
+- **contact-confirmation** - "Thank you for contacting us"
+- **password-reset** - Secure password reset emails with links
+- **notification** - Generic notification emails
 
 ### Template Variables
 
-Templates use single-brace `{variable}` syntax for dynamic content:
+Templates use `{variable}` syntax for dynamic content:
 
-**Contact Confirmation**:
-- `{user_name}` - Recipient name
-- `{email}` - User's email address
-- `{ticket_id}` - Support ticket identifier
-- `{support_email}` - Support email address
+**Common variables:**
+- `{user_name}`, `{email}`, `{support_email}`
 
-**Password Reset**:
-- `{user_name}` - Recipient name
-- `{email}` - Account email
-- `{reset_link}` - Password reset URL
-- `{verification_code}` - Verification code
-- `{support_email}` - Support email address
+**Password reset:**
+- `{reset_link}`, `{verification_code}`
 
-**Notification**:
-- `{user_name}` - Recipient name
-- `{notification_title}` - Notification heading
-- `{notification_message}` - Main message content
-- `{action_url}` - Call-to-action link
-- `{action_text}` - Button text
-- `{support_email}` - Support email address
+**Contact confirmation:**
+- `{ticket_id}`
 
-### Usage in Lambda
+**Notification:**
+- `{notification_title}`, `{notification_message}`, `{action_url}`, `{action_text}`
+
+### Usage Example
 
 ```python
 # Python - Load and render email template
@@ -150,7 +189,7 @@ const config = new ConfigLoader();
 const htmlTemplate = await config.getParameter('email/password-reset/html');
 const subject = await config.getParameter('email/password-reset/subject');
 
-// Replace template variables (using simple string replace or template library)
+// Replace template variables
 const emailHtml = htmlTemplate
     .replace('{user_name}', 'John Doe')
     .replace('{email}', 'john@example.com')
@@ -159,119 +198,9 @@ const emailHtml = htmlTemplate
     .replace('{support_email}', await config.getParameter('email/support_email'));
 ```
 
-## Getting Started
-
-### Prerequisites
-
-- AWS CLI configured with profile `gc`
-- Terraform >= 1.0
-- Python 3.x (for validation script)
-- AWS Account: 860154085634
-- AWS Region: ap-south-1 (Mumbai)
-
-### Quick Start
-
-The environments are already deployed! To use the configuration:
-
-1. **List parameters**:
-   ```bash
-   ./scripts/list-parameters.sh dev
-   ./scripts/list-parameters.sh stg
-   ./scripts/list-parameters.sh prd
-   ```
-
-2. **Get a parameter value**:
-   ```bash
-   ./scripts/get-parameter.sh dev api/base_url
-   ```
-
-3. **Update a parameter** (edit and redeploy):
-   ```bash
-   vim configs/dev/parameters.tfvars
-   ./scripts/deploy.sh dev
-   ```
-
-### Initial Setup (If Starting Fresh)
-
-1. **Configure AWS CLI**:
-   ```bash
-   aws configure --profile gc
-   # Enter credentials and set region to ap-south-1
-   ```
-
-2. **Update parameters for your environment**:
-   ```bash
-   vim configs/dev/parameters.tfvars
-   ```
-
-3. **Validate configuration**:
-   ```bash
-   python3 scripts/validate-config.py dev
-   ```
-
-4. **Deploy parameters**:
-   ```bash
-   ./scripts/deploy.sh dev
-   ```
-
-## Common Tasks
-
-### Deploy Configuration Changes
-
-```bash
-# Deploy to dev environment
-./scripts/deploy.sh dev
-
-# Deploy to stg
-./scripts/deploy.sh stg
-
-# Deploy to prd
-./scripts/deploy.sh prd
-```
-
-### List All Parameters
-
-```bash
-# List all dev parameters
-./scripts/list-parameters.sh dev
-
-# List all prd parameters
-./scripts/list-parameters.sh prd
-```
-
-### Retrieve a Parameter Value
-
-```bash
-# Get a plain text parameter
-./scripts/get-parameter.sh dev database/host
-
-# Get and decrypt a secure parameter
-./scripts/get-parameter.sh prd database/password --decrypt
-```
-
-### Manual Terraform Operations
-
-```bash
-cd terraform
-
-# Initialize with backend
-terraform init -backend-config=../configs/dev/backend.tfvars
-
-# Plan changes
-terraform plan -var-file=../configs/dev/parameters.tfvars
-
-# Apply changes
-terraform apply -var-file=../configs/dev/parameters.tfvars
-
-# Destroy all parameters (use with caution!)
-terraform destroy -var-file=../configs/dev/parameters.tfvars
-```
-
 ## Lambda Integration
 
-Lambda functions need IAM permissions to read SSM parameters. The Terraform configuration creates an IAM policy that can be attached to Lambda execution roles.
-
-### Attach Policy to Lambda Role
+### Attach IAM Policy to Lambda Role
 
 ```bash
 # Get the policy ARN from Terraform outputs
@@ -281,20 +210,14 @@ terraform output lambda_ssm_read_policy_arn
 # Attach to your Lambda role
 aws iam attach-role-policy \
   --role-name your-lambda-role-name \
-  --policy-arn <policy-arn-from-output>
+  --policy-arn <policy-arn-from-output> \
+  --profile gc
 ```
 
-### Using Configuration in Lambda Functions
+### Use Configuration in Lambda Functions
 
-See the example implementations in `examples/lambda/`:
-
-- **Python**: `config_loader.py` - Includes caching and helper methods
-- **Node.js**: `config_loader.js` - Async/await with AWS SDK v3
-
-Example usage:
-
+**Python** (`examples/lambda/config_loader.py`):
 ```python
-# Python
 from config_loader import ConfigLoader
 
 config = ConfigLoader()
@@ -302,8 +225,8 @@ db_config = config.get_database_config()
 api_key = config.get_parameter('external/payment_api_key', decrypt=True)
 ```
 
+**Node.js** (`examples/lambda/config_loader.js`):
 ```javascript
-// Node.js
 const { ConfigLoader } = require('./config_loader');
 
 const config = new ConfigLoader();
@@ -311,26 +234,92 @@ const dbConfig = await config.getDatabaseConfig();
 const apiKey = await config.getParameter('external/payment_api_key', true);
 ```
 
+Both implementations include built-in caching for performance.
+
+## Direct Terraform Operations
+
+```bash
+cd terraform
+
+# Initialize with backend
+terraform init -backend-config=../configs/dev/backend.tfvars -reconfigure
+
+# Plan changes (must include both common and environment-specific files)
+terraform plan \
+  -var-file=../configs/common.tfvars \
+  -var-file=../configs/dev/parameters.tfvars
+
+# Apply changes
+terraform apply \
+  -var-file=../configs/common.tfvars \
+  -var-file=../configs/dev/parameters.tfvars
+
+# View outputs
+terraform output
+
+# Import existing parameter
+terraform import 'aws_ssm_parameter.config["api/base_url"]' /gadgetcloud/dev/api/base_url
+```
+
+## Project Structure
+
+```
+.
+├── terraform/              # Terraform infrastructure code
+│   ├── main.tf            # Provider and backend configuration
+│   ├── variables.tf       # Input variables
+│   ├── ssm.tf             # SSM parameters, KMS key, IAM policy
+│   └── outputs.tf         # Outputs (parameter ARNs, KMS key, etc.)
+├── configs/               # Configuration files
+│   ├── common.tfvars      # Shared parameters (all environments)
+│   ├── dev/
+│   │   ├── backend.tfvars # S3 backend config for dev
+│   │   └── parameters.tfvars  # Dev-specific parameters only
+│   ├── stg/
+│   │   ├── backend.tfvars # S3 backend config for stg
+│   │   └── parameters.tfvars  # Stg-specific parameters only
+│   └── prd/
+│       ├── backend.tfvars # S3 backend config for prd
+│       └── parameters.tfvars  # Prd-specific parameters only
+├── scripts/               # Helper scripts
+│   ├── deploy.sh          # Deploy parameters for an environment
+│   ├── get-parameter.sh   # Retrieve a parameter value
+│   ├── list-parameters.sh # List all parameters for an environment
+│   └── validate-config.py # Validate configuration files
+└── examples/              # Example code for Lambda functions
+    └── lambda/
+        ├── config_loader.py  # Python configuration loader
+        └── config_loader.js  # Node.js configuration loader
+```
+
+## Security Best Practices
+
+- ✅ **Never commit** `.tfvars` files with real values to git
+- ✅ **Always use** `SecureString` type for sensitive parameters
+- ✅ **Rotate secrets** regularly
+- ✅ **Use KMS encryption** for SecureString parameters (automatically configured)
+- ✅ **Apply least privilege** - only grant Lambda functions access to parameters they need
+- ✅ **Validate before deploying** to catch security issues
+
 ## Parameter Types
 
 - **String**: Plain text configuration values
 - **StringList**: Comma-separated list values
 - **SecureString**: Encrypted values (passwords, API keys, tokens)
 
-Always use `SecureString` for sensitive data like:
+Always use `SecureString` for:
 - Database passwords
 - API keys and tokens
 - OAuth secrets
 - Encryption keys
 
-## Security Best Practices
+## Prerequisites
 
-1. **Never commit** `.tfvars` files with real values to git
-2. **Always use** `SecureString` type for sensitive parameters
-3. **Rotate secrets** regularly
-4. **Use KMS encryption** for SecureString parameters (automatically configured)
-5. **Apply least privilege** - only grant Lambda functions access to parameters they need
-6. **Enable CloudTrail** to audit parameter access
+- AWS CLI configured with profile `gc`
+- Terraform >= 1.0
+- Python 3.x (for validation script)
+- AWS Account: 860154085634
+- AWS Region: ap-south-1 (Mumbai)
 
 ## Cost Optimization
 
@@ -340,14 +329,14 @@ Always use `SecureString` for sensitive data like:
 
 ## Troubleshooting
 
-### Parameter Not Found Error
+### Parameter Not Found
 
-Verify the parameter exists:
 ```bash
+# Verify parameter exists
 ./scripts/list-parameters.sh dev
-```
 
-Check parameter name format matches: `/gadgetcloud/{env}/{key}`
+# Check parameter name format matches: /gadgetcloud/{env}/{key}
+```
 
 ### Access Denied Error
 
@@ -357,16 +346,19 @@ Ensure Lambda execution role has:
 
 ### Terraform State Issues
 
-If state gets corrupted or lost:
 ```bash
-# Re-import existing parameters (example)
-terraform import aws_ssm_parameter.config[\"database/host\"] /gadgetcloud/dev/database/host
+# Re-import existing parameters if needed
+terraform import 'aws_ssm_parameter.config["database/host"]' /gadgetcloud/dev/database/host
 ```
 
 ## Contributing
 
 When adding new parameters:
-1. Add to `configs/common.tfvars` for shared parameters, or to the appropriate environment's `configs/{env}/parameters.tfvars` for environment-specific values
+1. Add to `configs/common.tfvars` for shared parameters, or to `configs/{env}/parameters.tfvars` for environment-specific values
 2. Run validation: `python3 scripts/validate-config.py dev` (or stg/prd)
 3. Test in dev first: `./scripts/deploy.sh dev`
 4. Update documentation if adding new parameter categories
+
+## License
+
+Private - GadgetCloud
