@@ -52,6 +52,7 @@ Examples:
 - Values that differ per environment (e.g., API URLs)
 - Automatically merged with common parameters during deployment
 - Environment-specific values override common values
+- **Merge priority** (last wins): common_parameters < environment_parameters < parameters (legacy, deprecated)
 
 ## Common Tasks
 
@@ -315,11 +316,11 @@ Always use `SecureString` for:
 
 ## Prerequisites
 
-- AWS CLI configured with profile `gc`
-- Terraform >= 1.0
-- Python 3.x (for validation script)
-- AWS Account: 860154085634
-- AWS Region: ap-south-1 (Mumbai)
+- **AWS CLI** configured with profile `gc`
+- **Terraform** >= 1.0
+- **Python 3.x** (required for `validate-config.py` script)
+- **AWS Account**: 860154085634
+- **AWS Region**: ap-south-1 (Mumbai)
 
 ## Cost Optimization
 

@@ -52,12 +52,13 @@ Examples:
 - Uses `environment_parameters` variable
 - Overrides common parameters if conflicts exist
 
-**Merge strategy** (`terraform/ssm.tf:4`):
+**Merge strategy** (`terraform/ssm.tf:3-5`):
 ```hcl
 locals {
   all_parameters = merge(var.common_parameters, var.environment_parameters, var.parameters)
 }
 ```
+Priority (last wins): common_parameters < environment_parameters < parameters (legacy)
 
 ### Security
 
@@ -256,8 +257,12 @@ terraform import 'aws_ssm_parameter.config["api/base_url"]' /gadgetcloud/dev/api
 
 ## Important Notes
 
+- **AWS Account**: 860154085634 (ap-south-1 region)
+- **Python 3.x required**: For `validate-config.py` script
 - **Never commit** actual secrets to git - only `.example` files are tracked
 - **SecureString** parameters require `decrypt=True` when reading in Lambda
 - **Parameter caching**: Example loaders cache values - restart Lambda to clear
 - **Cost**: Standard tier free up to 10,000 params; Advanced tier for >4KB values
 - **Validation**: Always run `validate-config.py` before deploying to catch `CHANGE_ME` placeholders and misclassified secrets
+- **Merge priority**: Environment-specific parameters override common parameters. Legacy `var.parameters` variable is deprecated but still supported for backward compatibility (terraform/variables.tf:44-54)
+- **tfplan file**: The deploy script creates `terraform/tfplan` during deployment - this is gitignored and automatically cleaned up
