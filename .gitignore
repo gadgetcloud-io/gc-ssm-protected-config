@@ -5,6 +5,7 @@
 *.tfvars
 .terraform.lock.hcl
 terraform.tfplan
+tfplan
 
 # AWS
 .aws/
