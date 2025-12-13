@@ -1,0 +1,16 @@
+Thank You for Contacting Us
+
+Dear {user_name},
+
+We have received your message and appreciate you reaching out to GadgetCloud. Our team will review your inquiry and respond within 24-48 hours.
+
+Your Contact Details:
+- Email: {email}
+- Ticket ID: {ticket_id}
+
+If you have any urgent concerns, please contact us at {support_email}.
+
+Best regards,
+The GadgetCloud Team
+
+© 2025 GadgetCloud. All rights reserved.

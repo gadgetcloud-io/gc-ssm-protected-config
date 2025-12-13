@@ -1,0 +1,14 @@
+{notification_title}
+
+Dear {user_name},
+
+{notification_message}
+
+Action Link: {action_url}
+
+If you have any questions, please contact us at {support_email}.
+
+Best regards,
+The GadgetCloud Team
+
+© 2025 GadgetCloud. All rights reserved.

@@ -1,7 +1,7 @@
-# Merge common and environment-specific parameters
-# Environment-specific parameters take precedence if there's a conflict
+# Merge common, environment-specific, and email template parameters
+# Priority (last wins): email_templates < common_parameters < environment_parameters < parameters
 locals {
-  all_parameters = merge(var.common_parameters, var.environment_parameters, var.parameters)
+  all_parameters = merge(local.email_templates, var.common_parameters, var.environment_parameters, var.parameters)
 }
 
 resource "aws_ssm_parameter" "config" {
@@ -11,7 +11,7 @@ resource "aws_ssm_parameter" "config" {
   description = each.value.description
   type        = each.value.type
   value       = each.value.value
-  tier        = each.value.tier
+  tier        = try(each.value.tier, "Standard")
 
   # Use KMS key for SecureString parameters
   key_id = each.value.type == "SecureString" ? var.kms_key_id : null

@@ -1,0 +1,19 @@
+Welcome to GadgetCloud!
+
+Please verify your email address to complete your registration.
+
+Verification Link:
+{verification_link}
+
+Security Information:
+- This verification link will expire in 24 hours
+- If you did not create an account, please ignore this email
+
+Best regards,
+The GadgetCloud Team
+
+---
+GadgetCloud Authentication Service
+This is an automated email, please do not reply.
+
+© 2025 GadgetCloud. All rights reserved.

@@ -1,0 +1,19 @@
+Password Reset Request
+
+Dear {user_name},
+
+We received a request to reset the password for your GadgetCloud account ({email}).
+
+Click the link below to reset your password:
+{reset_link}
+
+Security Information:
+- This link will expire in 1 hour
+- Verification Code: {verification_code}
+
+IMPORTANT: If you did not request a password reset, please ignore this email or contact our support team immediately at {support_email}.
+
+Best regards,
+The GadgetCloud Team
+
+© 2025 GadgetCloud. All rights reserved.

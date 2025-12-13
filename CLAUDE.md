@@ -22,10 +22,11 @@ python3 scripts/validate-config.py dev
 
 Central SSM Parameter Store configuration for **Gadgetcloud.io** Lambda microservices. Uses Terraform to manage parameters across dev/stg/prd environments.
 
-**Current Status**: All environments deployed with 18 parameters each
+**Current Status**: All environments deployed with 40 parameters each
 - **AWS Profile**: `gc`
 - **Region**: ap-south-1 (Mumbai)
 - **Backend**: S3 (`tf-state.gadgetcloud.io`)
+- **Email Templates**: Managed in separate files (`configs/templates/email/`)
 
 ## Architecture
 
@@ -40,25 +41,30 @@ Examples:
 - `/gadgetcloud/prd/email/from_address`
 - `/gadgetcloud/stg/features/enable_analytics`
 
-### Two-Layer Configuration
+### Three-Layer Configuration
+
+**Email templates** (`terraform/email-templates.tf`):
+- Email templates loaded from separate files in `configs/templates/email/`
+- Uses Terraform's `file()` function for clean separation
+- Defined in `local.email_templates`
 
 **Shared config** (`configs/common.tfvars`):
-- Email templates, feature flags, rate limits
+- Feature flags, rate limits, form templates
 - Same across all environments
 - Uses `common_parameters` variable
 
 **Environment-specific** (`configs/{env}/parameters.tfvars`):
 - Values that differ per environment (e.g., API URLs)
 - Uses `environment_parameters` variable
-- Overrides common parameters if conflicts exist
+- Overrides common and email template parameters if conflicts exist
 
 **Merge strategy** (`terraform/ssm.tf:3-5`):
 ```hcl
 locals {
-  all_parameters = merge(var.common_parameters, var.environment_parameters, var.parameters)
+  all_parameters = merge(local.email_templates, var.common_parameters, var.environment_parameters, var.parameters)
 }
 ```
-Priority (last wins): common_parameters < environment_parameters < parameters (legacy)
+Priority (last wins): email_templates < common_parameters < environment_parameters < parameters (legacy)
 
 ### Security
 
@@ -146,23 +152,83 @@ For parameters **different per environment**:
 
 ## Email Templates
 
-The repository includes email templates in SSM:
+Email templates are stored in separate files for easier editing and management.
 
-**Template structure** (each has `/subject`, `/html`, `/text`):
-- `email/contact-confirmation/*`
-- `email/password-reset/*`
-- `email/notification/*`
+### Template Structure
 
-**Template variables** (use `{variable}` syntax):
+Each template type has three files (`subject.txt`, `html.html`, `text.txt`):
+
+```
+configs/templates/email/
+├── contact-confirmation/
+│   ├── subject.txt
+│   ├── html.html
+│   └── text.txt
+├── password-reset/
+├── email-verification/
+├── account-deletion/
+└── notification/
+```
+
+**Available templates**:
+- `email/contact-confirmation/*` - Thank you message for contact form submissions
+- `email/password-reset/*` - Password reset with verification code
+- `email/email-verification/*` - Email address verification for new accounts
+- `email/account-deletion/*` - Account deletion confirmation with grace period
+- `email/notification/*` - Generic notification template
+
+### Adding a New Email Template
+
+1. Create template files:
+   ```bash
+   mkdir -p configs/templates/email/new-template
+   # Create subject.txt, html.html, text.txt
+   ```
+
+2. Add to `terraform/email-templates.tf`:
+   ```hcl
+   "email/new-template/subject" = {
+     value       = file("${path.module}/../configs/templates/email/new-template/subject.txt")
+     type        = "String"
+     description = "New template subject"
+   }
+   # ... add html and text entries
+   ```
+
+3. Deploy: `./scripts/deploy.sh dev`
+
+### Editing Email Templates
+
+Simply edit the template files in `configs/templates/email/` and redeploy:
+
+```bash
+# Edit the template
+vim configs/templates/email/password-reset/html.html
+
+# Deploy changes
+./scripts/deploy.sh dev
+```
+
+### Template Variables
+
+Templates use `{variable}` syntax for dynamic content:
+
 ```python
 # Python example
 template = config.get_parameter('email/password-reset/html')
 email = template.format(
     user_name="John",
     reset_link="https://...",
-    verification_code="123456"
+    verification_code="123456",
+    support_email="support@gadgetcloud.io"
 )
 ```
+
+**Common variables**:
+- `{user_name}` - User's name
+- `{email}` - User's email address
+- `{support_email}` - Support contact email
+- Template-specific: `{reset_link}`, `{verification_link}`, `{ticket_id}`, `{deletion_date}`, etc.
 
 ## Lambda Integration
 
@@ -230,12 +296,20 @@ terraform import 'aws_ssm_parameter.config["api/base_url"]' /gadgetcloud/dev/api
 
 ```
 ├── terraform/
-│   ├── main.tf          # Provider and S3 backend
-│   ├── variables.tf     # Input variables (common_parameters, environment_parameters)
-│   ├── ssm.tf           # SSM parameters, KMS key, IAM policy (merge logic at line 4)
-│   └── outputs.tf       # Exports (parameter ARNs, KMS key, policy ARN)
+│   ├── main.tf              # Provider and S3 backend
+│   ├── variables.tf         # Input variables (common_parameters, environment_parameters)
+│   ├── ssm.tf               # SSM parameters, KMS key, IAM policy (merge logic at line 4)
+│   ├── email-templates.tf   # Email template definitions using file() function
+│   └── outputs.tf           # Exports (parameter ARNs, KMS key, policy ARN)
 ├── configs/
-│   ├── common.tfvars    # Shared parameters (all environments)
+│   ├── common.tfvars        # Shared parameters (feature flags, form templates)
+│   ├── templates/
+│   │   └── email/           # Email template files (subject.txt, html.html, text.txt)
+│   │       ├── contact-confirmation/
+│   │       ├── password-reset/
+│   │       ├── email-verification/
+│   │       ├── account-deletion/
+│   │       └── notification/
 │   ├── dev/
 │   │   ├── backend.tfvars
 │   │   └── parameters.tfvars  # Dev-specific overrides
@@ -246,13 +320,13 @@ terraform import 'aws_ssm_parameter.config["api/base_url"]' /gadgetcloud/dev/api
 │       ├── backend.tfvars
 │       └── parameters.tfvars  # Prd-specific overrides
 ├── scripts/
-│   ├── deploy.sh        # Main deployment script
-│   ├── validate-config.py
-│   ├── list-parameters.sh
-│   └── get-parameter.sh
+│   ├── deploy.sh            # Main deployment script
+│   ├── validate-config.py   # Configuration validation
+│   ├── list-parameters.sh   # List parameters in AWS
+│   └── get-parameter.sh     # Get parameter value from AWS
 └── examples/lambda/
-    ├── config_loader.py  # Python loader with caching
-    └── config_loader.js  # Node.js loader with caching
+    ├── config_loader.py     # Python loader with caching
+    └── config_loader.js     # Node.js loader with caching
 ```
 
 ## Important Notes
@@ -264,5 +338,6 @@ terraform import 'aws_ssm_parameter.config["api/base_url"]' /gadgetcloud/dev/api
 - **Parameter caching**: Example loaders cache values - restart Lambda to clear
 - **Cost**: Standard tier free up to 10,000 params; Advanced tier for >4KB values
 - **Validation**: Always run `validate-config.py` before deploying to catch `CHANGE_ME` placeholders and misclassified secrets
-- **Merge priority**: Environment-specific parameters override common parameters. Legacy `var.parameters` variable is deprecated but still supported for backward compatibility (terraform/variables.tf:44-54)
+- **Merge priority**: Email templates are loaded first, then common parameters, then environment-specific parameters. Legacy `var.parameters` variable is deprecated but still supported for backward compatibility (terraform/variables.tf:44-54)
+- **Email templates**: Stored as separate files in `configs/templates/email/` for easier editing with syntax highlighting. Loaded via Terraform's `file()` function in `terraform/email-templates.tf`
 - **tfplan file**: The deploy script creates `terraform/tfplan` during deployment - this is gitignored and automatically cleaned up
