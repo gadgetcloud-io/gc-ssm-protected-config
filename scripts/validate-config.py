@@ -54,14 +54,14 @@ def validate_tfvars(file_path):
 def main():
     if len(sys.argv) < 2:
         print("Usage: validate-config.py <environment>")
-        print("  environment: dev, stg, or prd")
+        print("  environment: stg or prd")
         print("\nAlternative: validate-config.py <path-to-tfvars-file>")
         sys.exit(1)
 
     arg = sys.argv[1]
 
     # Check if argument is an environment name or a file path
-    if arg in ['dev', 'stg', 'prd']:
+    if arg in ['stg', 'prd']:
         # Validate both common and environment-specific configs
         environment = arg
         script_dir = Path(__file__).parent

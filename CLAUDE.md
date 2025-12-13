@@ -6,27 +6,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # Deploy to an environment
-./scripts/deploy.sh dev
+./scripts/deploy.sh stg
 
 # Validate configuration
-python3 scripts/validate-config.py dev
+python3 scripts/validate-config.py stg
 
 # List parameters in AWS
-./scripts/list-parameters.sh dev
+./scripts/list-parameters.sh stg
 
 # Get a specific parameter
-./scripts/get-parameter.sh dev api/base_url
+./scripts/get-parameter.sh stg api/base_url
 ```
 
 ## Project Overview
 
-Central SSM Parameter Store configuration for **Gadgetcloud.io** Lambda microservices. Uses Terraform to manage parameters across dev/stg/prd environments.
+Central SSM Parameter Store configuration for **Gadgetcloud.io** Lambda microservices. Uses Terraform to manage parameters across stg/prd environments.
 
 **Current Status**: All environments deployed with 40 parameters each
+- **Environments**: stg (staging), prd (production)
 - **AWS Profile**: `gc`
 - **Region**: ap-south-1 (Mumbai)
 - **Backend**: S3 (`tf-state.gadgetcloud.io`)
-- **Email Templates**: Managed in separate files (`configs/templates/email/`)
+- **Templates**: Managed in separate files (`configs/templates/`)
 
 ## Architecture
 
@@ -37,7 +38,7 @@ Central SSM Parameter Store configuration for **Gadgetcloud.io** Lambda microser
 ```
 
 Examples:
-- `/gadgetcloud/dev/api/base_url`
+- `/gadgetcloud/stg/api/base_url`
 - `/gadgetcloud/prd/email/from_address`
 - `/gadgetcloud/stg/features/enable_analytics`
 
@@ -71,16 +72,13 @@ Priority (last wins): email_templates < forms_templates < common_parameters < en
 - **KMS Encryption**: Each environment has its own KMS key
 - **SecureString**: Use for passwords, tokens, API keys
 - **IAM Policy**: Terraform creates `lambda_ssm_read_policy_arn` for Lambda functions
-- **Environment Isolation**: dev/stg/prd parameters never overlap
+- **Environment Isolation**: stg/prd parameters never overlap
 
 ## Common Tasks
 
 ### Deploy Changes
 
 ```bash
-# Deploy to dev (most common)
-./scripts/deploy.sh dev
-
 # Deploy to staging
 ./scripts/deploy.sh stg
 
@@ -109,26 +107,26 @@ For parameters **same across all environments**:
      }
    }
    ```
-3. Validate: `python3 scripts/validate-config.py dev`
-4. Deploy to all: `./scripts/deploy.sh dev && ./scripts/deploy.sh stg && ./scripts/deploy.sh prd`
+3. Validate: `python3 scripts/validate-config.py stg`
+4. Deploy to all: `./scripts/deploy.sh stg && ./scripts/deploy.sh prd`
 
 ### Add an Environment-Specific Parameter
 
 For parameters **different per environment**:
 
-1. Edit `configs/dev/parameters.tfvars` (and stg/prd)
+1. Edit `configs/stg/parameters.tfvars` (and prd)
 2. Add to `environment_parameters` map:
    ```hcl
    environment_parameters = {
      "api/base_url" = {
-       value       = "https://api-dev.gadgetcloud.io"
+       value       = "https://api-stg.gadgetcloud.io"
        type        = "String"
        description = "API base URL"
      }
    }
    ```
-3. Validate: `python3 scripts/validate-config.py dev`
-4. Deploy: `./scripts/deploy.sh dev`
+3. Validate: `python3 scripts/validate-config.py stg`
+4. Deploy: `./scripts/deploy.sh stg`
 
 ### Update a Secret
 
@@ -141,10 +139,10 @@ For parameters **different per environment**:
 
 ```bash
 # List all parameters for an environment
-./scripts/list-parameters.sh dev
+./scripts/list-parameters.sh stg
 
 # Get a parameter value
-./scripts/get-parameter.sh dev email/from_address
+./scripts/get-parameter.sh stg email/from_address
 
 # Get and decrypt a SecureString
 ./scripts/get-parameter.sh prd database/password --decrypt
@@ -195,7 +193,7 @@ configs/templates/email/
    # ... add html and text entries
    ```
 
-3. Deploy: `./scripts/deploy.sh dev`
+3. Deploy: `./scripts/deploy.sh stg`
 
 ### Editing Email Templates
 
@@ -206,7 +204,7 @@ Simply edit the template files in `configs/templates/email/` and redeploy:
 vim configs/templates/email/password-reset/html.html
 
 # Deploy changes
-./scripts/deploy.sh dev
+./scripts/deploy.sh stg
 ```
 
 ### Template Variables
@@ -271,7 +269,7 @@ Simply edit the template files and redeploy:
 vim configs/templates/forms/feedback/autoReplyMessage.txt
 
 # Deploy changes
-./scripts/deploy.sh dev
+./scripts/deploy.sh stg
 ```
 
 ## Lambda Integration
@@ -317,23 +315,23 @@ Both implementations include caching via `@lru_cache` (Python) and `Map` (Node.j
 cd terraform
 
 # Initialize
-terraform init -backend-config=../configs/dev/backend.tfvars -reconfigure
+terraform init -backend-config=../configs/stg/backend.tfvars -reconfigure
 
 # Plan (MUST include both files)
 terraform plan \
   -var-file=../configs/common.tfvars \
-  -var-file=../configs/dev/parameters.tfvars
+  -var-file=../configs/stg/parameters.tfvars
 
 # Apply
 terraform apply \
   -var-file=../configs/common.tfvars \
-  -var-file=../configs/dev/parameters.tfvars
+  -var-file=../configs/stg/parameters.tfvars
 
 # View outputs
 terraform output
 
 # Import existing parameter
-terraform import 'aws_ssm_parameter.config["api/base_url"]' /gadgetcloud/dev/api/base_url
+terraform import 'aws_ssm_parameter.config["api/base_url"]' /gadgetcloud/stg/api/base_url
 ```
 
 ## File Structure
@@ -359,15 +357,12 @@ terraform import 'aws_ssm_parameter.config["api/base_url"]' /gadgetcloud/dev/api
 │   │       ├── feedback/
 │   │       ├── survey/
 │   │       └── serviceRequests/
-│   ├── dev/
-│   │   ├── backend.tfvars
-│   │   └── parameters.tfvars  # Dev-specific overrides
 │   ├── stg/
 │   │   ├── backend.tfvars
-│   │   └── parameters.tfvars  # Stg-specific overrides
+│   │   └── parameters.tfvars  # Staging-specific parameters
 │   └── prd/
 │       ├── backend.tfvars
-│       └── parameters.tfvars  # Prd-specific overrides
+│       └── parameters.tfvars  # Production-specific parameters
 ├── scripts/
 │   ├── deploy.sh            # Main deployment script
 │   ├── validate-config.py   # Configuration validation
