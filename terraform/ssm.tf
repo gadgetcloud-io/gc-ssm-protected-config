@@ -1,7 +1,7 @@
-# Merge common, environment-specific, and email template parameters
-# Priority (last wins): email_templates < common_parameters < environment_parameters < parameters
+# Merge template files, common, and environment-specific parameters
+# Priority (last wins): email_templates < forms_templates < common_parameters < environment_parameters < parameters
 locals {
-  all_parameters = merge(local.email_templates, var.common_parameters, var.environment_parameters, var.parameters)
+  all_parameters = merge(local.email_templates, local.forms_templates, var.common_parameters, var.environment_parameters, var.parameters)
 }
 
 resource "aws_ssm_parameter" "config" {

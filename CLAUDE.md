@@ -43,13 +43,13 @@ Examples:
 
 ### Three-Layer Configuration
 
-**Email templates** (`terraform/email-templates.tf`):
-- Email templates loaded from separate files in `configs/templates/email/`
+**Templates** (`terraform/templates.tf`):
+- Email and forms templates loaded from separate files in `configs/templates/`
 - Uses Terraform's `file()` function for clean separation
-- Defined in `local.email_templates`
+- Defined in `local.email_templates` and `local.forms_templates`
 
 **Shared config** (`configs/common.tfvars`):
-- Feature flags, rate limits, form templates
+- Feature flags, rate limits, email/SMS configuration
 - Same across all environments
 - Uses `common_parameters` variable
 
@@ -61,10 +61,10 @@ Examples:
 **Merge strategy** (`terraform/ssm.tf:3-5`):
 ```hcl
 locals {
-  all_parameters = merge(local.email_templates, var.common_parameters, var.environment_parameters, var.parameters)
+  all_parameters = merge(local.email_templates, local.forms_templates, var.common_parameters, var.environment_parameters, var.parameters)
 }
 ```
-Priority (last wins): email_templates < common_parameters < environment_parameters < parameters (legacy)
+Priority (last wins): email_templates < forms_templates < common_parameters < environment_parameters < parameters (legacy)
 
 ### Security
 
@@ -230,6 +230,50 @@ email = template.format(
 - `{support_email}` - Support contact email
 - Template-specific: `{reset_link}`, `{verification_link}`, `{ticket_id}`, `{deletion_date}`, etc.
 
+## Forms Templates
+
+Forms service templates are also stored in separate files for consistency.
+
+### Template Structure
+
+Each form type has four configuration files:
+
+```
+configs/templates/forms/
+├── contacts/
+│   ├── subject.txt
+│   ├── autoReply.txt
+│   ├── autoReplySubject.txt
+│   └── autoReplyMessage.txt
+├── feedback/
+├── survey/
+└── serviceRequests/
+```
+
+**Available form types**:
+- `forms/email-templates/contacts/*` - Contact form submissions
+- `forms/email-templates/feedback/*` - User feedback forms
+- `forms/email-templates/survey/*` - Survey responses
+- `forms/email-templates/serviceRequests/*` - Service request forms
+
+Each form has these parameters:
+- `subject` - Notification email subject for admin
+- `autoReply` - Whether to send auto-reply ("true"/"false")
+- `autoReplySubject` - Subject for user auto-reply email
+- `autoReplyMessage` - Message for user auto-reply email
+
+### Editing Forms Templates
+
+Simply edit the template files and redeploy:
+
+```bash
+# Edit a form template
+vim configs/templates/forms/feedback/autoReplyMessage.txt
+
+# Deploy changes
+./scripts/deploy.sh dev
+```
+
 ## Lambda Integration
 
 ### Attach IAM Policy
@@ -299,17 +343,22 @@ terraform import 'aws_ssm_parameter.config["api/base_url"]' /gadgetcloud/dev/api
 │   ├── main.tf              # Provider and S3 backend
 │   ├── variables.tf         # Input variables (common_parameters, environment_parameters)
 │   ├── ssm.tf               # SSM parameters, KMS key, IAM policy (merge logic at line 4)
-│   ├── email-templates.tf   # Email template definitions using file() function
+│   ├── templates.tf         # Email and forms template definitions using file() function
 │   └── outputs.tf           # Exports (parameter ARNs, KMS key, policy ARN)
 ├── configs/
-│   ├── common.tfvars        # Shared parameters (feature flags, form templates)
+│   ├── common.tfvars        # Shared parameters (feature flags, email config)
 │   ├── templates/
-│   │   └── email/           # Email template files (subject.txt, html.html, text.txt)
-│   │       ├── contact-confirmation/
-│   │       ├── password-reset/
-│   │       ├── email-verification/
-│   │       ├── account-deletion/
-│   │       └── notification/
+│   │   ├── email/           # Email template files (subject.txt, html.html, text.txt)
+│   │   │   ├── contact-confirmation/
+│   │   │   ├── password-reset/
+│   │   │   ├── email-verification/
+│   │   │   ├── account-deletion/
+│   │   │   └── notification/
+│   │   └── forms/           # Forms template files (subject.txt, autoReply.txt, etc.)
+│   │       ├── contacts/
+│   │       ├── feedback/
+│   │       ├── survey/
+│   │       └── serviceRequests/
 │   ├── dev/
 │   │   ├── backend.tfvars
 │   │   └── parameters.tfvars  # Dev-specific overrides
@@ -339,5 +388,5 @@ terraform import 'aws_ssm_parameter.config["api/base_url"]' /gadgetcloud/dev/api
 - **Cost**: Standard tier free up to 10,000 params; Advanced tier for >4KB values
 - **Validation**: Always run `validate-config.py` before deploying to catch `CHANGE_ME` placeholders and misclassified secrets
 - **Merge priority**: Email templates are loaded first, then common parameters, then environment-specific parameters. Legacy `var.parameters` variable is deprecated but still supported for backward compatibility (terraform/variables.tf:44-54)
-- **Email templates**: Stored as separate files in `configs/templates/email/` for easier editing with syntax highlighting. Loaded via Terraform's `file()` function in `terraform/email-templates.tf`
+- **Templates**: Email and forms templates are stored as separate files in `configs/templates/` for easier editing with syntax highlighting. Loaded via Terraform's `file()` function in `terraform/templates.tf`
 - **tfplan file**: The deploy script creates `terraform/tfplan` during deployment - this is gitignored and automatically cleaned up
