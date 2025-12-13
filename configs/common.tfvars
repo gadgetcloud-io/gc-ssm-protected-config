@@ -175,6 +175,148 @@ common_parameters = {
     description = "Password reset email plain text template"
   }
 
+  # Email Template: Email Verification
+  "email/email-verification/subject" = {
+    value       = "Verify Your GadgetCloud Email"
+    type        = "String"
+    description = "Email verification subject"
+  }
+  "email/email-verification/html" = {
+    value       = <<-EOT
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px;">
+          <h1 style="color: #2c3e50; margin-bottom: 20px;">Welcome to GadgetCloud!</h1>
+          <p>Please verify your email address to complete your registration.</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="{verification_link}" style="background-color: #27ae60; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">Verify Email</a>
+          </div>
+          <div style="background-color: #e8f5e9; padding: 15px; border-left: 4px solid #27ae60; margin: 20px 0;">
+            <p style="margin: 0;"><strong>Security Information:</strong></p>
+            <p style="margin: 5px 0;">This verification link will expire in 24 hours.</p>
+            <p style="margin: 5px 0;">If you did not create an account, please ignore this email.</p>
+          </div>
+          <p>Or copy and paste this URL into your browser:</p>
+          <p style="word-break: break-all; background-color: #f0f0f0; padding: 10px; border-radius: 3px;">{verification_link}</p>
+          <p style="margin-top: 30px;">Best regards,<br>The GadgetCloud Team</p>
+        </div>
+        <div style="text-align: center; margin-top: 20px; color: #7f8c8d; font-size: 12px;">
+          <p>GadgetCloud Authentication Service</p>
+          <p>This is an automated email, please do not reply.</p>
+          <p>&copy; 2025 GadgetCloud. All rights reserved.</p>
+        </div>
+      </body>
+      </html>
+    EOT
+    type        = "String"
+    description = "Email verification HTML template"
+  }
+  "email/email-verification/text" = {
+    value       = <<-EOT
+      Welcome to GadgetCloud!
+
+      Please verify your email address to complete your registration.
+
+      Verification Link:
+      {verification_link}
+
+      Security Information:
+      - This verification link will expire in 24 hours
+      - If you did not create an account, please ignore this email
+
+      Best regards,
+      The GadgetCloud Team
+
+      ---
+      GadgetCloud Authentication Service
+      This is an automated email, please do not reply.
+
+      © 2025 GadgetCloud. All rights reserved.
+    EOT
+    type        = "String"
+    description = "Email verification plain text template"
+  }
+
+  # Email Template: Account Deletion
+  "email/account-deletion/subject" = {
+    value       = "GadgetCloud Account Deletion Scheduled"
+    type        = "String"
+    description = "Account deletion confirmation subject"
+  }
+  "email/account-deletion/html" = {
+    value       = <<-EOT
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px;">
+          <h1 style="color: #e74c3c; margin-bottom: 20px;">Account Deletion Scheduled</h1>
+          <p>We have received your request to delete your GadgetCloud account ({email}).</p>
+          <div style="background-color: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 20px 0;">
+            <p style="margin: 0;"><strong>Important:</strong></p>
+            <p style="margin: 5px 0;">Your account has been marked for deletion and will be permanently removed on <strong>{deletion_date}</strong>.</p>
+            <p style="margin: 5px 0;">You have a <strong>30-day grace period</strong> to change your mind.</p>
+          </div>
+          <p><strong>To reactivate your account:</strong></p>
+          <p>Simply log in to your account before {deletion_date}, and your account will be automatically restored.</p>
+          {reason_section}
+          <div style="background-color: #ffebee; padding: 15px; border-left: 4px solid #e74c3c; margin: 20px 0;">
+            <p style="margin: 0;"><strong>After {deletion_date}:</strong></p>
+            <p style="margin: 5px 0;">• All your data will be permanently deleted</p>
+            <p style="margin: 5px 0;">• This action cannot be undone</p>
+            <p style="margin: 5px 0;">• You will need to create a new account to use GadgetCloud</p>
+          </div>
+          <p>If you did not request this deletion, please contact our support team immediately at {support_email}.</p>
+          <p style="margin-top: 30px;">Best regards,<br>The GadgetCloud Team</p>
+        </div>
+        <div style="text-align: center; margin-top: 20px; color: #7f8c8d; font-size: 12px;">
+          <p>&copy; 2025 GadgetCloud. All rights reserved.</p>
+        </div>
+      </body>
+      </html>
+    EOT
+    type        = "String"
+    description = "Account deletion confirmation HTML template"
+  }
+  "email/account-deletion/text" = {
+    value       = <<-EOT
+      Account Deletion Scheduled
+
+      We have received your request to delete your GadgetCloud account ({email}).
+
+      IMPORTANT:
+      - Your account has been marked for deletion and will be permanently removed on {deletion_date}
+      - You have a 30-day grace period to change your mind
+
+      To reactivate your account:
+      Simply log in to your account before {deletion_date}, and your account will be automatically restored.
+
+      {reason_text}
+
+      After {deletion_date}:
+      • All your data will be permanently deleted
+      • This action cannot be undone
+      • You will need to create a new account to use GadgetCloud
+
+      If you did not request this deletion, please contact our support team immediately at {support_email}.
+
+      Best regards,
+      The GadgetCloud Team
+
+      © 2025 GadgetCloud. All rights reserved.
+    EOT
+    type        = "String"
+    description = "Account deletion confirmation plain text template"
+  }
+
   # Email Template: Notification
   "email/notification/subject" = {
     value       = "{notification_title} - GadgetCloud"
