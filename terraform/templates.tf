@@ -1,11 +1,12 @@
-# Templates loaded from external files
-# This allows for easier management and editing of email and forms templates
+# Email and forms templates configuration
+# Large templates (HTML/text) are loaded from external files for easier editing
+# Small values (subjects, booleans, short messages) are defined inline
 
 locals {
   email_templates = {
     # Contact Confirmation
     "email/contact-confirmation/subject" = {
-      value       = file("${path.module}/../configs/templates/email/contact-confirmation/subject.txt")
+      value       = "Thank You for Contacting GadgetCloud"
       type        = "String"
       description = "Contact confirmation email subject"
     }
@@ -22,7 +23,7 @@ locals {
 
     # Password Reset
     "email/password-reset/subject" = {
-      value       = file("${path.module}/../configs/templates/email/password-reset/subject.txt")
+      value       = "Reset Your GadgetCloud Password"
       type        = "String"
       description = "Password reset email subject"
     }
@@ -39,7 +40,7 @@ locals {
 
     # Email Verification
     "email/email-verification/subject" = {
-      value       = file("${path.module}/../configs/templates/email/email-verification/subject.txt")
+      value       = "Verify Your GadgetCloud Email"
       type        = "String"
       description = "Email verification subject"
     }
@@ -56,7 +57,7 @@ locals {
 
     # Account Deletion
     "email/account-deletion/subject" = {
-      value       = file("${path.module}/../configs/templates/email/account-deletion/subject.txt")
+      value       = "GadgetCloud Account Deletion Scheduled"
       type        = "String"
       description = "Account deletion confirmation subject"
     }
@@ -73,7 +74,7 @@ locals {
 
     # Notification
     "email/notification/subject" = {
-      value       = file("${path.module}/../configs/templates/email/notification/subject.txt")
+      value       = "{notification_title} - GadgetCloud"
       type        = "String"
       description = "Notification email subject"
     }
@@ -92,88 +93,88 @@ locals {
   forms_templates = {
     # Contact Form Templates
     "forms/email-templates/contacts/subject" = {
-      value       = file("${path.module}/../configs/templates/forms/contacts/subject.txt")
+      value       = "New Contact Form - {email}"
       type        = "String"
       description = "Contact form notification subject"
     }
     "forms/email-templates/contacts/autoReply" = {
-      value       = file("${path.module}/../configs/templates/forms/contacts/autoReply.txt")
+      value       = "true"
       type        = "String"
       description = "Whether to send auto-reply for contact forms"
     }
     "forms/email-templates/contacts/autoReplySubject" = {
-      value       = file("${path.module}/../configs/templates/forms/contacts/autoReplySubject.txt")
+      value       = "Thank you for contacting GadgetCloud"
       type        = "String"
       description = "Contact form auto-reply email subject"
     }
     "forms/email-templates/contacts/autoReplyMessage" = {
-      value       = file("${path.module}/../configs/templates/forms/contacts/autoReplyMessage.txt")
+      value       = "Thank you for reaching out to GadgetCloud! We have received your message and will get back to you within 24-48 hours."
       type        = "String"
       description = "Contact form auto-reply email message"
     }
 
     # Feedback Form Templates
     "forms/email-templates/feedback/subject" = {
-      value       = file("${path.module}/../configs/templates/forms/feedback/subject.txt")
+      value       = "New Feedback - {email}"
       type        = "String"
       description = "Feedback form notification subject"
     }
     "forms/email-templates/feedback/autoReply" = {
-      value       = file("${path.module}/../configs/templates/forms/feedback/autoReply.txt")
+      value       = "true"
       type        = "String"
       description = "Whether to send auto-reply for feedback forms"
     }
     "forms/email-templates/feedback/autoReplySubject" = {
-      value       = file("${path.module}/../configs/templates/forms/feedback/autoReplySubject.txt")
+      value       = "Thank you for your feedback"
       type        = "String"
       description = "Feedback form auto-reply email subject"
     }
     "forms/email-templates/feedback/autoReplyMessage" = {
-      value       = file("${path.module}/../configs/templates/forms/feedback/autoReplyMessage.txt")
+      value       = "Thank you for sharing your feedback with GadgetCloud! Your input helps us improve our services. We appreciate you taking the time to let us know your thoughts."
       type        = "String"
       description = "Feedback form auto-reply email message"
     }
 
     # Survey Form Templates
     "forms/email-templates/survey/subject" = {
-      value       = file("${path.module}/../configs/templates/forms/survey/subject.txt")
+      value       = "New Survey Response - {email}"
       type        = "String"
       description = "Survey form notification subject"
     }
     "forms/email-templates/survey/autoReply" = {
-      value       = file("${path.module}/../configs/templates/forms/survey/autoReply.txt")
+      value       = "true"
       type        = "String"
       description = "Whether to send auto-reply for survey forms"
     }
     "forms/email-templates/survey/autoReplySubject" = {
-      value       = file("${path.module}/../configs/templates/forms/survey/autoReplySubject.txt")
+      value       = "Thank you for completing our survey"
       type        = "String"
       description = "Survey form auto-reply email subject"
     }
     "forms/email-templates/survey/autoReplyMessage" = {
-      value       = file("${path.module}/../configs/templates/forms/survey/autoReplyMessage.txt")
+      value       = "Thank you for completing our survey! Your responses have been recorded and will help us better understand and serve our customers."
       type        = "String"
       description = "Survey form auto-reply email message"
     }
 
     # Service Request Form Templates
     "forms/email-templates/serviceRequests/subject" = {
-      value       = file("${path.module}/../configs/templates/forms/serviceRequests/subject.txt")
+      value       = "New Service Request - {email}"
       type        = "String"
       description = "Service request form notification subject"
     }
     "forms/email-templates/serviceRequests/autoReply" = {
-      value       = file("${path.module}/../configs/templates/forms/serviceRequests/autoReply.txt")
+      value       = "true"
       type        = "String"
       description = "Whether to send auto-reply for service request forms"
     }
     "forms/email-templates/serviceRequests/autoReplySubject" = {
-      value       = file("${path.module}/../configs/templates/forms/serviceRequests/autoReplySubject.txt")
+      value       = "We received your service request"
       type        = "String"
       description = "Service request auto-reply email subject"
     }
     "forms/email-templates/serviceRequests/autoReplyMessage" = {
-      value       = file("${path.module}/../configs/templates/forms/serviceRequests/autoReplyMessage.txt")
+      value       = "Thank you for contacting GadgetCloud! We have received your service request and will get back to you within 24 hours."
       type        = "String"
       description = "Service request auto-reply email message"
     }

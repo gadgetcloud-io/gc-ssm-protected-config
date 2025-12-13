@@ -22,12 +22,12 @@ python3 scripts/validate-config.py stg
 
 Central SSM Parameter Store configuration for **Gadgetcloud.io** Lambda microservices. Uses Terraform to manage parameters across stg/prd environments.
 
-**Current Status**: All environments deployed with 40 parameters each
+**Current Status**: All environments deployed with 43 parameters each
 - **Environments**: stg (staging), prd (production)
 - **AWS Profile**: `gc`
 - **Region**: ap-south-1 (Mumbai)
 - **Backend**: S3 (`tf-state.gadgetcloud.io`)
-- **Templates**: Managed in separate files (`configs/templates/`)
+- **Templates**: Large email templates in separate files, small values inline
 
 ## Architecture
 
@@ -45,8 +45,8 @@ Examples:
 ### Three-Layer Configuration
 
 **Templates** (`terraform/templates.tf`):
-- Email and forms templates loaded from separate files in `configs/templates/`
-- Uses Terraform's `file()` function for clean separation
+- Large email HTML/text templates loaded from files using `file()` function
+- Small values (subjects, form configs) defined inline for simplicity
 - Defined in `local.email_templates` and `local.forms_templates`
 
 **Shared config** (`configs/common.tfvars`):
@@ -57,7 +57,7 @@ Examples:
 **Environment-specific** (`configs/{env}/parameters.tfvars`):
 - Values that differ per environment (e.g., API URLs)
 - Uses `environment_parameters` variable
-- Overrides common and email template parameters if conflicts exist
+- Overrides common and template parameters if conflicts exist
 
 **Merge strategy** (`terraform/ssm.tf:3-5`):
 ```hcl
@@ -150,16 +150,15 @@ For parameters **different per environment**:
 
 ## Email Templates
 
-Email templates are stored in separate files for easier editing and management.
+Large email templates (HTML and text) are stored in separate files for easier editing with syntax highlighting. Subjects are defined inline in `terraform/templates.tf`.
 
 ### Template Structure
 
-Each template type has three files (`subject.txt`, `html.html`, `text.txt`):
+Each email type has HTML and text files only (subjects are inline):
 
 ```
 configs/templates/email/
 ├── contact-confirmation/
-│   ├── subject.txt
 │   ├── html.html
 │   └── text.txt
 ├── password-reset/
@@ -180,17 +179,26 @@ configs/templates/email/
 1. Create template files:
    ```bash
    mkdir -p configs/templates/email/new-template
-   # Create subject.txt, html.html, text.txt
+   # Create html.html and text.txt
    ```
 
-2. Add to `terraform/email-templates.tf`:
+2. Add to `terraform/templates.tf` in the `email_templates` local:
    ```hcl
    "email/new-template/subject" = {
-     value       = file("${path.module}/../configs/templates/email/new-template/subject.txt")
+     value       = "Your Subject Line Here"
      type        = "String"
      description = "New template subject"
    }
-   # ... add html and text entries
+   "email/new-template/html" = {
+     value       = file("${path.module}/../configs/templates/email/new-template/html.html")
+     type        = "String"
+     description = "New template HTML"
+   }
+   "email/new-template/text" = {
+     value       = file("${path.module}/../configs/templates/email/new-template/text.txt")
+     type        = "String"
+     description = "New template plain text"
+   }
    ```
 
 3. Deploy: `./scripts/deploy.sh stg`
@@ -230,23 +238,11 @@ email = template.format(
 
 ## Forms Templates
 
-Forms service templates are also stored in separate files for consistency.
+Forms service templates are defined inline in `terraform/templates.tf` for simplicity since they're short text values.
 
 ### Template Structure
 
-Each form type has four configuration files:
-
-```
-configs/templates/forms/
-├── contacts/
-│   ├── subject.txt
-│   ├── autoReply.txt
-│   ├── autoReplySubject.txt
-│   └── autoReplyMessage.txt
-├── feedback/
-├── survey/
-└── serviceRequests/
-```
+All form templates are in the `forms_templates` local in `terraform/templates.tf`.
 
 **Available form types**:
 - `forms/email-templates/contacts/*` - Contact form submissions
@@ -255,18 +251,18 @@ configs/templates/forms/
 - `forms/email-templates/serviceRequests/*` - Service request forms
 
 Each form has these parameters:
-- `subject` - Notification email subject for admin
-- `autoReply` - Whether to send auto-reply ("true"/"false")
+- `subject` - Notification email subject for admin (e.g., "New Feedback - {email}")
+- `autoReply` - Whether to send auto-reply ("true")
 - `autoReplySubject` - Subject for user auto-reply email
 - `autoReplyMessage` - Message for user auto-reply email
 
 ### Editing Forms Templates
 
-Simply edit the template files and redeploy:
+Edit the values in `terraform/templates.tf` in the `forms_templates` local and redeploy:
 
 ```bash
-# Edit a form template
-vim configs/templates/forms/feedback/autoReplyMessage.txt
+# Edit terraform/templates.tf
+vim terraform/templates.tf
 
 # Deploy changes
 ./scripts/deploy.sh stg
@@ -346,17 +342,12 @@ terraform import 'aws_ssm_parameter.config["api/base_url"]' /gadgetcloud/stg/api
 ├── configs/
 │   ├── common.tfvars        # Shared parameters (feature flags, email config)
 │   ├── templates/
-│   │   ├── email/           # Email template files (subject.txt, html.html, text.txt)
-│   │   │   ├── contact-confirmation/
-│   │   │   ├── password-reset/
-│   │   │   ├── email-verification/
-│   │   │   ├── account-deletion/
-│   │   │   └── notification/
-│   │   └── forms/           # Forms template files (subject.txt, autoReply.txt, etc.)
-│   │       ├── contacts/
-│   │       ├── feedback/
-│   │       ├── survey/
-│   │       └── serviceRequests/
+│   │   └── email/           # Email template files (html.html, text.txt only)
+│   │       ├── contact-confirmation/
+│   │       ├── password-reset/
+│   │       ├── email-verification/
+│   │       ├── account-deletion/
+│   │       └── notification/
 │   ├── stg/
 │   │   ├── backend.tfvars
 │   │   └── parameters.tfvars  # Staging-specific parameters
@@ -382,6 +373,6 @@ terraform import 'aws_ssm_parameter.config["api/base_url"]' /gadgetcloud/stg/api
 - **Parameter caching**: Example loaders cache values - restart Lambda to clear
 - **Cost**: Standard tier free up to 10,000 params; Advanced tier for >4KB values
 - **Validation**: Always run `validate-config.py` before deploying to catch `CHANGE_ME` placeholders and misclassified secrets
-- **Merge priority**: Email templates are loaded first, then common parameters, then environment-specific parameters. Legacy `var.parameters` variable is deprecated but still supported for backward compatibility (terraform/variables.tf:44-54)
-- **Templates**: Email and forms templates are stored as separate files in `configs/templates/` for easier editing with syntax highlighting. Loaded via Terraform's `file()` function in `terraform/templates.tf`
+- **Merge priority**: Email templates are loaded first, then forms templates, then common parameters, then environment-specific parameters. Legacy `var.parameters` variable is deprecated but still supported for backward compatibility (terraform/variables.tf:44-54)
+- **Templates**: Only large email HTML/text templates are stored as separate files (10 files). Small values (subjects, form configs) are inline in `terraform/templates.tf` to avoid deep folder structures for trivial values.
 - **tfplan file**: The deploy script creates `terraform/tfplan` during deployment - this is gitignored and automatically cleaned up
