@@ -2,7 +2,8 @@
 .terraform/
 *.tfstate
 *.tfstate.*
-*.tfvars
+*.secret.tfvars
+*.local.tfvars
 .terraform.lock.hcl
 terraform.tfplan
 tfplan
